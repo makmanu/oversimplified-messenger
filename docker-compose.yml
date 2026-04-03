@@ -1,0 +1,14 @@
+services:
+  messenger:
+    build: .
+    ports:
+      - "50505:50505"
+    volumes:
+      - messenger_data:/app/data
+    environment:
+      - DB_PATH=/app/data/messages.db
+    restart: unless-stopped
+
+volumes:
+  messenger_data:
+    driver: local
