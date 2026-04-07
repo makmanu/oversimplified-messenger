@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Oversimplified Messenger</title>
+	<style>
+		* { margin: 0; padding: 0; box-sizing: border-box; }
+		body { font-family: Arial, sans-serif; background-color: #f5f5f5; padding: 20px; }
+		.container { max-width: 1000px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+		.card { background-color: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+		h1, h2 { color: #333; margin-bottom: 20px; }
+		h1 { grid-column: 1 / -1; text-align: center; }
+		form { display: flex; flex-direction: column; gap: 15px; }
+		input, textarea { padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; font-family: Arial, sans-serif; }
+		input:focus, textarea:focus { outline: none; border-color: #4CAF50; box-shadow: 0 0 5px rgba(76, 175, 80, 0.3); }
+		button { padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold; }
+		button:hover { background-color: #45a049; }
+		button:active { background-color: #3d8b40; }
+		#messages { display: flex; flex-direction: column; gap: 10px; max-height: 500px; overflow-y: auto; }
+		.message-item { background-color: #f9f9f9; padding: 12px; border-left: 4px solid #4CAF50; border-radius: 4px; }
+		.message-header { font-weight: bold; color: #333; margin-bottom: 5px; font-size: 14px; }
+		.message-text { color: #555; margin-bottom: 5px; word-wrap: break-word; }
+		.message-time { font-size: 12px; color: #999; }
+		.error { color: #d32f2f; padding: 10px; background-color: #ffebee; border-radius: 4px; margin-bottom: 10px; }
+		.success { color: #388e3c; padding: 10px; background-color: #e8f5e9; border-radius: 4px; margin-bottom: 10px; }
+		@media (max-width: 768px) { .container { grid-template-columns: 1fr; } }
+	</style>
+</head>
+<body>
+	<h1>Oversimplified Messenger</h1>
+	<div class="container">
+		<div class="card">
+			<h2>Send Message</h2>
+			<div id="sendStatus"></div>
+			<form id="sendForm">
+				<input type="text" id="sendFrom" placeholder="From (Your name)" required>
+				<input type="text" id="sendTo" placeholder="To (Recipient)" required>
+				<textarea id="sendMessage" placeholder="Message" rows="5" required></textarea>
+				<button type="submit">Send Message</button>
+			</form>
+		</div>
+		<div class="card">
+			<h2>View Messages</h2>
+			<div id="viewStatus"></div>
+			<form id="viewForm">
+				<input type="text" id="searchTo" placeholder="Search messages for (Recipient name)">
+				<button type="submit">Find Messages</button>
+			</form>
+			<div id="messages"></div>
+		</div>
+	</div>
+	<script>
+		document.getElementById('sendForm').addEventListener('submit', async (e) => {
+			e.preventDefault();
+			const from = document.getElementById('sendFrom').value;
+			const to = document.getElementById('sendTo').value;
+			const message = document.getElementById('sendMessage').value;
+			const statusDiv = document.getElementById('sendStatus');
+			if (!from || !to || !message) {
+				statusDiv.innerHTML = '<div class="error">All fields are required</div>';
+				return;
+			}
+			try {
+				const response = await fetch('/messages', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ from, to, message })
+				});
+				if (response.ok) {
+					statusDiv.innerHTML = '<div class="success">Message sent successfully!</div>';
+					document.getElementById('sendForm').reset();
+					setTimeout(() => { statusDiv.innerHTML = ''; }, 3000);
+				} else {
+					const error = await response.text();
+					statusDiv.innerHTML = '<div class="error">Error: ' + error + '</div>';
+				}
+			} catch (error) {
+				statusDiv.innerHTML = '<div class="error">Error: ' + error.message + '</div>';
+			}
+		});
+		document.getElementById('viewForm').addEventListener('submit', async (e) => {
+			e.preventDefault();
+			const searchTo = document.getElementById('searchTo').value;
+			const statusDiv = document.getElementById('viewStatus');
+			const messagesDiv = document.getElementById('messages');
+			if (!searchTo) {
+				statusDiv.innerHTML = '<div class="error">Please enter a recipient name</div>';
+				return;
+			}
+			try {
+				const response = await fetch('/api/messages?to=' + encodeURIComponent(searchTo));
+				if (response.ok) {
+					const messages = await response.json();
+					statusDiv.innerHTML = '';
+					if (messages.length === 0) {
+						messagesDiv.innerHTML = '<p style="color: #999;">No messages found for this recipient</p>';
+						return;
+					}
+					messagesDiv.innerHTML = messages.map(msg => {
+						const date = new Date(msg.created_at).toLocaleString();
+						return '<div class="message-item"><div class="message-header">From: ' + msg.from + ' -> To: ' + msg.to + '</div><div class="message-text">' + msg.message + '</div><div class="message-time">' + date + '</div></div>';
+					}).join('');
+				} else {
+					statusDiv.innerHTML = '<div class="error">Error fetching messages</div>';
+				}
+			} catch (error) {
+				statusDiv.innerHTML = '<div class="error">Error: ' + error.message + '</div>';
+			}
+		});
+	</script>
+</body>
+</html>
