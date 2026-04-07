@@ -28,6 +28,7 @@ type StoredMessage struct {
 
 var db *sql.DB
 
+// Initialize the database connection and create the messages table if it doesn't exist
 func init() {
 	var err error
 
@@ -68,12 +69,14 @@ func init() {
 	}
 }
 
+// Enable CORS for all responses
 func enableCORS(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 }
 
+// Handle POST requests to save messages
 func handleMessage(w http.ResponseWriter, r *http.Request) {
 	enableCORS(w)
 
@@ -125,6 +128,7 @@ func handleMessage(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// Serve the HTML menu page at the root URL
 func handleUIIndex(w http.ResponseWriter, r *http.Request) { 
 	html, err := os.ReadFile("html/menu")
 	if err != nil {
@@ -135,6 +139,7 @@ func handleUIIndex(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, string(html))
 }
 
+// Handle GET requests to retrieve messages for a specific recipient
 func handleGetMessages(w http.ResponseWriter, r *http.Request) {
 	enableCORS(w)
 
@@ -177,6 +182,7 @@ func handleGetMessages(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(messages)
 }
 
+// Main function to start the server
 func main() {
 	defer db.Close()
 
